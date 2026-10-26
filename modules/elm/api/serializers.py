@@ -52,15 +52,35 @@ class LeaveRequestCreateSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["end_date"] < attrs["start_date"]:
-            raise serializers.ValidationError({"end_date": "End date must not precede start date."})
-        if attrs["station_leave_required"] and not attrs["station_leave_details"].strip():
             raise serializers.ValidationError({
-                "station_leave_details": "Details are required when Station Leave applies."
+                "end_date": "End date must not precede start date."
             })
-        if attrs.get("substitute_user_id") is not None and attrs["substitute_user_id"] <= 0:
-            raise serializers.ValidationError({"substitute_user_id": "Invalid employee id."})
-        return attrs
 
+        if (
+            attrs["station_leave_required"]
+            and not attrs["station_leave_details"].strip()
+        ):
+            raise serializers.ValidationError({
+                "station_leave_details":
+                    "Details are required when Station Leave applies."
+            })
+
+        substitute_user_id = attrs.get("substitute_user_id")
+        if substitute_user_id is not None and substitute_user_id <= 0:
+            raise serializers.ValidationError({
+                "substitute_user_id": "Invalid employee id."
+            })
+
+        if (
+            attrs["half_day"] in ("first", "second")
+            and attrs["start_date"] != attrs["end_date"]
+        ):
+            raise serializers.ValidationError({
+                "half_day":
+                    "Half-day leave must have the same start and end date."
+            })
+
+        return attrs
 
 class LeaveDecisionSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=("recommend", "not_recommend",
